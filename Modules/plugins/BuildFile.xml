@@ -1,0 +1,4 @@
+<library file="*.cc" name="DUNEModulesPlugins">
+  <flags EDM_PLUGIN="1"/>
+  <use name="FWCore/Framework"/>
+</library>
