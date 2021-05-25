@@ -5,6 +5,7 @@
 #include "FWCore/Utilities/interface/EDPutToken.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 
+#include <thread>
 namespace dune {
   class InteractionProcessor : public edm::global::EDProducer<> {
   public:
