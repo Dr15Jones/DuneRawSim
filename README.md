@@ -9,6 +9,15 @@ This code is meant to simulate the memory needs for the DUNE experiment's data p
 1. Based on all potential `neutrino interactions` found, reduce down to just the best ones. This is handled by the `dune::InteractionAccumulator`.
 1. From the interactions, finish the processing needed. THis is handled by the `dune::InteractionProcessor` EDProducer. This module sleeps for 20 seconds (to simulate the time it would take to process the interactions).
 
+There is also a general purpose module, `dune::MemoryUseProd` which can be used to model all of the above modules. The module puts an `std::vector<char>` into the Event and reads 0 or more `std::vector<char>` from the Event. This allows one to create a network of interdependent `dune::MemoryUseProd`s. The module has the following parameters
+
+* `dataSizes` : A list of the amount of memory (in bytes) to create each Event. The list item used for a given Event is determined by taking the modulo of the Event number. Default is `[0]`.
+* `uSleeps`: A list of the amount of time to sleep (in microseconds) for each Event. The list item used for a given Event is determined by taking the modulo of the Event number. Defaults to `[0]`.
+* `consume`: A list of `InputTag`s which define which data products from other modules should be consumed by the module. Default is `[]`.
+* `mightGet`: This is a parameter added to all modules by the Framework. It is used in conjunction with the _delete early_ facility.
+
+NOTE: one can see these options by doing `edmPluginHelp -p dune::MemoryUseProd`
+
 ## Building the Code
 
 This code requires access the the CMSSW runtime. This can be accomplished from any machine that has CVMFS access by doing the following

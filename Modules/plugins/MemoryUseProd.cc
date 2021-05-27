@@ -8,6 +8,16 @@
 #include <chrono>
 #include <thread>
 
+namespace {
+  template<typename T>
+  std::vector<T> atLeastOne(std::vector<T> iV) {
+    if(not iV.empty()) {
+      return iV;
+    }
+    return std::vector<T>(1, T{0});
+  }
+}
+
 namespace dune {
   class MemoryUseProd : public edm::global::EDProducer<> {
   public:
@@ -17,15 +27,15 @@ namespace dune {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
   private:
-    const size_t dataSize_;
-    const int milliSecSleep_;
+    const std::vector<unsigned int> dataSizes_;
+    const std::vector<int> uSleeps_;
     std::vector<edm::EDGetTokenT<std::vector<char>>> getTokens_;
     const edm::EDPutTokenT<std::vector<char>> putToken_;
   };
 
   MemoryUseProd::MemoryUseProd(edm::ParameterSet const& iPSet):
-    dataSize_(iPSet.getParameter<unsigned int>("dataSize")),
-    milliSecSleep_(iPSet.getParameter<int>("uSleep")),
+    dataSizes_(atLeastOne(iPSet.getParameter<std::vector<unsigned int>>("dataSizes"))),
+    uSleeps_(atLeastOne(iPSet.getParameter<std::vector<int>>("uSleeps"))),
     putToken_(produces<std::vector<char>>())
   {
     for(auto const& tag: iPSet.getParameter<std::vector<edm::InputTag>>("consume")) {
@@ -39,16 +49,17 @@ namespace dune {
       (void) iEvent.get(token);
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(milliSecSleep_));
+    auto id = iEvent.id().event();
+    std::this_thread::sleep_for(std::chrono::milliseconds(uSleeps_[id % uSleeps_.size()]));
 
-    iEvent.emplace(putToken_, dataSize_, 5);
+    iEvent.emplace(putToken_, dataSizes_[id % dataSizes_.size()], 5);
   }
 
   void MemoryUseProd::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;
     
-    desc.add<unsigned int>("dataSize", 0)->setComment("Amount of memory to put into Event (in bytes)");
-    desc.add<int>("uSleep", 0)->setComment("How long to sleep, in milliseconds");
+    desc.add<std::vector<unsigned int>>("dataSizes", std::vector<unsigned int>(static_cast<std::size_t>(1),0U))->setComment("Amount of memory to put into each Event (in bytes). Will cycle through entries  using modulo of event number.");
+    desc.add<std::vector<int>>("uSleeps", std::vector<int>(static_cast<std::size_t>(1),0))->setComment("How long to sleep for each Event, in milliseconds. Will cycle through entries using modulo of event number.");
     desc.add<std::vector<edm::InputTag>>("consume")->setComment("Which data products to consume");
   
     descriptions.addDefault(desc);

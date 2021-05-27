@@ -18,16 +18,16 @@ deleteEarlyList = []
 for x in range(1,151):
     #this module simulates reading one APA's data from storage on demand
     apaName = "apa"+str(x)
-    setattr(process, "apa"+str(x), _memoryUseProd.clone(dataSize = 40*1000*1000, consume = []))
+    setattr(process, "apa"+str(x), _memoryUseProd.clone(dataSizes = [40*1000*1000], consume = []))
     apaProduct = "chars_"+apaName+"__RAW"
     deleteEarlyList.append(apaProduct)
 
     #this module simulates finding clusters in one given APA
     clusterName = "cluster"+str(x)
     setattr(process, clusterName, _memoryUseProd.clone( 
-                                                  dataSize= 400*1000, 
+                                                  dataSizes= [400*1000], 
                                                   consume = [dune.InputTag(apaName)],
-                                                  uSleep = 100,
+                                                  uSleeps = [100],
                                                   mightGet = [apaProduct]
                                               ))
 
@@ -51,7 +51,7 @@ process.interactions = _memoryUseProd.clone(
 
 #This simulates the time it takes to do the rest of the processing on the interactions
 process.processInteraction = _memoryUseProd.clone(
-                                             uSleep = 20000,
+                                             uSleeps = [20000],
                                              consume = ["interactions"])
 
 interactionsTask = dune.Task( *(getattr(process, i) for i in interactionFinders) )
