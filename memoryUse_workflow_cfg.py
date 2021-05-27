@@ -14,22 +14,27 @@ interactionFinders =[]
 
 deleteEarlyList = []
 
+def generateProductName(moduleName):
+    return "chars_"+moduleName+"__RAW"
+def generateMightGet(moduleNames):
+    return [ generateProductName(mod) for mod in moduleNames]
+
 #create per APA modules
 for x in range(1,151):
     #this module simulates reading one APA's data from storage on demand
     apaName = "apa"+str(x)
     setattr(process, "apa"+str(x), _memoryUseProd.clone(dataSizes = [40*1000*1000], consume = []))
-    apaProduct = "chars_"+apaName+"__RAW"
-    deleteEarlyList.append(apaProduct)
+    #want to setup to delete the memory
+    deleteEarlyList.extend(generateMightGet([apaName]))
 
     #this module simulates finding clusters in one given APA
     clusterName = "cluster"+str(x)
-    setattr(process, clusterName, _memoryUseProd.clone( 
-                                                  dataSizes= [400*1000], 
-                                                  consume = [dune.InputTag(apaName)],
-                                                  uSleeps = [100],
-                                                  mightGet = [apaProduct]
-                                              ))
+    setattr(process, clusterName, 
+            _memoryUseProd.clone( dataSizes= [400*1000], 
+                                  consume = [apaName],
+                                  uSleeps = [100],
+                                  mightGet = generateMightGet([apaName])
+                              ))
 
     tasks.append( dune.Task(getattr(process,apaName), getattr(process,clusterName) ) )
 
@@ -41,18 +46,19 @@ for x in range(1,151):
     if len(checkClusters) == 3:
         interactionFinderName="interaction"+str(x-1)
         setattr(process, interactionFinderName, 
-                _memoryUseProd.clone( 
-                                consume = (dune.InputTag(x) for x in checkClusters))  )
+                _memoryUseProd.clone( consume = checkClusters,
+                                      mightGet = generateMightGet(checkClusters))
+            )
         interactionFinders.append(interactionFinderName)
 
 #This module looks at all APA triplets and simulates finding the best interactions
-process.interactions = _memoryUseProd.clone(
-                                    consume = (dune.InputTag(x) for x in interactionFinders))
+process.interactions = _memoryUseProd.clone( consume = interactionFinders,
+                                             mightGet = generateMightGet(interactionFinders) )
 
 #This simulates the time it takes to do the rest of the processing on the interactions
-process.processInteraction = _memoryUseProd.clone(
-                                             uSleeps = [20000],
-                                             consume = ["interactions"])
+process.processInteraction = _memoryUseProd.clone( uSleeps = [20000],
+                                                   consume = ["interactions"],
+                                                   mightGet = generateMightGet(["interactions"]) )
 
 interactionsTask = dune.Task( *(getattr(process, i) for i in interactionFinders) )
 tasks.append(interactionsTask)
